@@ -24,13 +24,17 @@ func serve(account, socket, path, wrap string) error {
 }
 
 func listen(socket string) (net.Listener, error) {
-	if err := privateDir(filepath.Dir(socket)); err != nil {
-		return nil, err
-	}
-	if err := removeStaleSocket(socket); err != nil {
+	if err := checkServable(socket); err != nil {
 		return nil, err
 	}
 	return net.Listen("unix", socket)
+}
+
+func checkServable(socket string) error {
+	if err := privateDir(filepath.Dir(socket)); err != nil {
+		return err
+	}
+	return removeStaleSocket(socket)
 }
 
 func privateDir(dir string) error {

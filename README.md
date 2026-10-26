@@ -8,19 +8,36 @@ Anything that can reach the socket can read every secret in the account, so forw
 
 ## On the Mac
 
-Turn on Settings → Developer → Integrate with other apps in the 1Password app, then run a keyhole for each account:
-
 ```sh
-keyhole -account <account> -socket $HOME/.keyhole/personal.sock
+brew install carldaws/tap/keyhole
 ```
 
-`<account>` is the account's name as the app's sidebar shows it, or its UUID. The socket's directory must be private to you; keyhole creates it if it's missing.
+Turn on Settings → Developer → Integrate with other apps in the 1Password app, then install a keyhole for each account:
+
+```sh
+keyhole install personal -account <account>
+```
+
+`<account>` is the account's name as the app's sidebar shows it, or its UUID. The keyhole serves the account on `~/.keyhole/personal.sock`, starts now and whenever you log in, and logs to `~/Library/Logs/keyhole-personal.log`. Run `keyhole install` again with new flags to change them, and `keyhole uninstall personal` to remove it. The keyhole runs the `keyhole` you installed it with, so install it from the one on your `PATH`. `keyhole serve` runs one in the foreground instead, with the same flags and a `-socket`.
+
+The socket's directory must be private to you; keyhole creates it if it's missing.
 
 One keyhole serves one account: the 1Password SDK sends every request in a process as the first account it connected to.
 
 ## In the VM
 
-Set `StreamLocalBindUnlink yes` in the VM's `/etc/ssh/sshd_config`, so a reconnection can replace the socket the last one left behind. Then forward the socket when you connect, where `<uid>` is your user ID in the VM (`id -u`):
+With [Lima](https://lima-vm.io), forward the socket in the VM's config and Lima sets it up whenever the VM starts:
+
+```yaml
+portForwards:
+- guestSocket: "/run/user/{{.UID}}/keyhole.sock"
+  hostSocket: "{{.Home}}/.keyhole/personal.sock"
+  reverse: true
+```
+
+Install the keyhole before you first start the VM. Otherwise Lima makes the socket's directory, too open for keyhole, and you'll need to `chmod 700` it.
+
+Over plain SSH, set `StreamLocalBindUnlink yes` in the VM's `/etc/ssh/sshd_config`, so a reconnection can replace the socket the last one left behind. Then forward the socket when you connect, where `<uid>` is your user ID in the VM (`id -u`):
 
 ```sh
 ssh -R /run/user/<uid>/keyhole.sock:$HOME/.keyhole/personal.sock vm

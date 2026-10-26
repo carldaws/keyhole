@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"runtime/debug"
 	"strings"
 
 	"github.com/1password/onepassword-sdk-go"
@@ -40,7 +39,7 @@ func (o *onePassword) resolve(ctx context.Context, reference string) (string, er
 	if o.client == nil {
 		client, err := onepassword.NewClient(context.WithoutCancel(ctx),
 			onepassword.WithDesktopAppIntegration(o.account),
-			onepassword.WithIntegrationInfo("keyhole", version()),
+			onepassword.WithIntegrationInfo("keyhole", buildVersion()),
 		)
 		if err != nil {
 			return "", err
@@ -55,11 +54,4 @@ func clientLost(err error) bool {
 		return false
 	}
 	return strings.Contains(strings.ToLower(err.Error()), "invalid client id")
-}
-
-func version() string {
-	if info, ok := debug.ReadBuildInfo(); ok {
-		return info.Main.Version
-	}
-	return "(devel)"
 }
